@@ -58,10 +58,6 @@ class _VerifyEmailState extends State<VerifyEmail> {
                   Container(
                     width: 100,
                     height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      shape: BoxShape.circle,
-                    ),
                     child: Center(
                       child: Image.asset(
                         'assets/images/khoj_logo.png', // Replace with your actual image path
