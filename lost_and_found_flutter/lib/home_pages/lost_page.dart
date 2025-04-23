@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found_flutter/home_pages/profile.dart';
 
 class LostPage extends StatelessWidget {
   const LostPage({super.key});
@@ -18,8 +19,14 @@ class LostPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: IconButton(
-              icon: const Icon(Icons.report_gmailerrorred_outlined, color: Colors.white),
-              onPressed: () {},
+              icon: const Icon(Icons.person, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                );
+
+              },
             ),
           )
         ],

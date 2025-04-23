@@ -1,10 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:lost_and_found_flutter/auth/signup.dart';
 import 'package:lost_and_found_flutter/auth/verify_email.dart';
-import 'package:lost_and_found_flutter/home_pages/home_navigation_menu.dart';
+import 'package:lost_and_found_flutter/auth/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthService().signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      // Redirect will happen in main.dart
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Login failed')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,84 +51,94 @@ class LoginPage extends StatelessWidget {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo
-                Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/khoj_logo.png',
-                      height: 100,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                ),
-                const SizedBox(height: 40),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/khoj_logo.png',
+                        height: 100,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
 
-                // Email / Phone
-                _buildInputField(
-                  hintText: "Email/Ph Num",
-                  obscureText: false,
-                ),
-
-                const SizedBox(height: 20),
-
-                // Password
-                _buildInputField(
-                  hintText: "Password",
-                  obscureText: true,
-                ),
-
-                const SizedBox(height: 10),
-
-                // Forgot password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const VerifyEmail(),
-                        ),
-                      );
+                  // Email/Phone
+                  _buildInputField(
+                    controller: _emailController,
+                    hintText: "Email / Phone",
+                    obscureText: false,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter your email or phone';
+                      }
+                      return null;
                     },
-                    child: const Text(
-                      "forgot password ?",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Password
+                  _buildInputField(
+                    controller: _passwordController,
+                    hintText: "Password",
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const VerifyEmail()),
+                        );
+                      },
+                      child: const Text(
+                        "forgot password ?",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
-                // Login Button
-                _buildButton("Log in", onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NavigationMenu(),
+                  // Login Button
+                  _buildButton("Log in", onPressed: _handleLogin),
+
+                  const SizedBox(height: 15),
+
+                  // Sign Up Button
+                  _buildButton("Sign up", onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignUpPage()),
+                    );
+                  }),
+
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 20),
+                      child: CircularProgressIndicator(color: Colors.white),
                     ),
-                  );
-                }),
-
-                const SizedBox(height: 15),
-
-                // Sign Up Button
-                _buildButton("Sign up", onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SignUpPage(),
-                    ),
-                  );
-                }),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -105,9 +146,16 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInputField({required String hintText, required bool obscureText}) {
-    return TextField(
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String hintText,
+    required bool obscureText,
+    required String? Function(String?) validator,
+  }) {
+    return TextFormField(
+      controller: controller,
       obscureText: obscureText,
+      validator: validator,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hintText,
