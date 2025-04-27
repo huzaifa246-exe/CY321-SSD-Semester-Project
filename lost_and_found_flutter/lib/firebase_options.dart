@@ -50,19 +50,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCJFGqy2u5Qysx4eDW03PuLCjrpEkiwogY',
-    appId: '1:758440683925:android:8b689974af2ea6bf6cae9c',
-    messagingSenderId: '758440683925',
-    projectId: 'khoj-9e679',
-    storageBucket: 'khoj-9e679.firebasestorage.app',
+    
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAYjkdIj4Motgewy9vnqLb2ZKixjAg8wX8',
-    appId: '1:758440683925:ios:a4e5997dfd5e8cf46cae9c',
-    messagingSenderId: '758440683925',
-    projectId: 'khoj-9e679',
-    storageBucket: 'khoj-9e679.firebasestorage.app',
-    iosBundleId: 'com.example.lostAndFoundFlutter',
+    
   );
 }
