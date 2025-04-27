@@ -7,6 +7,8 @@ gradle-wrapper.jar
 /app/google-services.json
 GeneratedPluginRegistrant.java
 ../lib/firebase_options.dart
+../secrets.env
+../lib/main.dart
 
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/docs/deployment/android#reference-the-keystore-from-the-app

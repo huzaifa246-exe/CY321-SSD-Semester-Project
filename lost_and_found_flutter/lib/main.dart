@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'firebase_options.dart';
 import 'auth/login.dart';
 import 'home_pages/home_navigation_menu.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+
+  await Supabase.initialize(
+    url: 'https://cxbekxuagvbsviuokxuh.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh'
+        'YmFzZSIsInJlZiI6ImN4YmVreHVhZ3Zic3ZpdW9reHVoIiwicm9sZSI6ImFub24iLCJpYXQiOj'
+        'E3NDU3NTE4NjMsImV4cCI6MjA2MTMyNzg2M30.7TmHQFtChBlwK23XRPGr15md_a7PsWzk4PrJLsA1ryE',
+  );
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -36,8 +47,8 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+    return StreamBuilder<firebase_auth.User?>(
+      stream: firebase_auth.FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -52,3 +63,4 @@ class AuthWrapper extends StatelessWidget {
     );
   }
 }
+

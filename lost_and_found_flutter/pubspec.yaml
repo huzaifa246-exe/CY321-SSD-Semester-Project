@@ -49,6 +49,12 @@ dev_dependencies:
   flutterfire_cli: ^1.2.0
   firebase_core: ^3.13.0
   firebase_auth: ^5.5.2
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.4.0
+  firebase_storage: ^12.4.5
+  path_provider: ^2.1.5
+  flutter_dotenv: ^5.2.1
+  supabase_flutter: ^2.8.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
