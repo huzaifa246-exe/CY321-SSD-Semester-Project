@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class VerifyEmail extends StatefulWidget {
   const VerifyEmail({Key? key}) : super(key: key);
@@ -9,31 +10,37 @@ class VerifyEmail extends StatefulWidget {
 
 class _VerifyEmailState extends State<VerifyEmail> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
-  bool _otpSent = false;
+  bool _isSending = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
-  void _sendEmail() {
-    // Implement email sending logic here
-    setState(() {
-      _otpSent = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('OTP sent to your email')),
-    );
-  }
+  Future<void> _sendPasswordResetEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email')),
+      );
+      return;
+    }
 
-  void _verifyOtp() {
-    // Implement OTP verification logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Verification in progress...')),
-    );
+    setState(() => _isSending = true);
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent. Check your inbox.')),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Failed to send email')),
+      );
+    } finally {
+      setState(() => _isSending = false);
+    }
   }
 
   @override
@@ -54,23 +61,16 @@ class _VerifyEmailState extends State<VerifyEmail> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo and branding
-                  Container(
+                  // Logo
+                  SizedBox(
                     width: 100,
                     height: 100,
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/khoj_logo.png', // Replace with your actual image path
-                        height: 100,
-                      ),
-                    ),
+                    child: Image.asset('assets/images/khoj_logo.png'),
                   ),
-                  const SizedBox(height: 8),
                   const SizedBox(height: 40),
 
-                  // Verify Email title
                   const Text(
-                    'VERIFY EMAIL',
+                    'RESET PASSWORD',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -79,14 +79,11 @@ class _VerifyEmailState extends State<VerifyEmail> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Email input field
+                  // Email input
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Email',
-                        style: TextStyle(color: Colors.white70),
-                      ),
+                      const Text('Email', style: TextStyle(color: Colors.white70)),
                       const SizedBox(height: 4),
                       TextField(
                         controller: _emailController,
@@ -107,79 +104,35 @@ class _VerifyEmailState extends State<VerifyEmail> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  // Send Email button
-                  SizedBox(
-                    width: 150,
-                    child: ElevatedButton(
-                      onPressed: _sendEmail,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text('send email'),
-                    ),
-                  ),
                   const SizedBox(height: 24),
 
-                  // OTP instructions
+                  // Instructions
                   const Text(
-                    'You will receive an OTP on this email address. Be sure to provide verified email address.',
+                    'Enter your registered email address. You will receive a link to reset your password.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Please verify the code below:',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
 
-                  // OTP input field
-                  TextField(
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Verify button
+                  // Send button
                   SizedBox(
-                    width: 150,
+                    width: 180,
                     child: ElevatedButton(
-                      onPressed: _verifyOtp,
+                      onPressed: _isSending ? null : _sendPasswordResetEmail,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('verify'),
+                      child: _isSending
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : const Text('Send Reset Email'),
                     ),
                   ),
                 ],

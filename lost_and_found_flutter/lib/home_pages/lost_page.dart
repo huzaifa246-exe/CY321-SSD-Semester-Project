@@ -6,15 +6,16 @@ import 'package:lost_and_found_flutter/home_pages/profile.dart';
 import 'package:lost_and_found_flutter/home_pages/selected_item.dart';
 
 class LostPage extends StatefulWidget {
-  const LostPage({super.key});
+  final String? phoneNumber;
+  const LostPage({super.key, required this.phoneNumber});
 
   @override
   State<LostPage> createState() => _LostPageState();
 }
 
 class _LostPageState extends State<LostPage> {
-  List<dynamic> lostItems = [];
-  List<dynamic> filteredItems = [];
+  List<Map<String, dynamic>> lostItems = [];
+  List<Map<String, dynamic>> filteredItems = [];
   bool isLoading = true;
   TextEditingController searchController = TextEditingController();
 
@@ -30,33 +31,46 @@ class _LostPageState extends State<LostPage> {
       final response = await http.post(Uri.parse(url));
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        print(decoded);
         if (decoded is List) {
+          final items = decoded
+              .where((item) => item['status'] == 'lost')
+              .map<Map<String, dynamic>>((item) => Map<String, dynamic>.from(item))
+              .toList();
           setState(() {
-            lostItems = decoded.where((item) => item['status'] == 'lost').toList();
-            filteredItems = lostItems;
+            lostItems = items;
+            filteredItems = items;
             isLoading = false;
           });
-        } else {
-          print('Unexpected response format: $decoded');
         }
-      } else {
-        print('Failed to load items: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching items: $e');
     }
   }
 
-  void searchItems(String query) {
-    final results = lostItems.where((item) {
-      final title = (item['title'] ?? '').toLowerCase();
-      return title.contains(query.toLowerCase());
-    }).toList();
-
-    setState(() {
-      filteredItems = results;
-    });
+  Future<void> searchItems(String query) async {
+    const url = '$apiURL/search_items';
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'search': query, 'status': 'lost'}),
+      );
+      if (response.statusCode == 200) {
+        final results = json.decode(response.body);
+        if (results is List) {
+          setState(() {
+            filteredItems = results
+                .map<Map<String, dynamic>>((item) => Map<String, dynamic>.from(item))
+                .toList();
+          });
+        }
+      } else {
+        print("Search failed with status ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error searching items: $e");
+    }
   }
 
   @override
@@ -93,102 +107,152 @@ class _LostPageState extends State<LostPage> {
         child: Column(
           children: [
             // Search bar
-            TextField(
-              controller: searchController,
-              onChanged: searchItems,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: 'Search...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (query) {
+                      if (query.isEmpty) {
+                        setState(() {
+                          filteredItems = lostItems;
+                        });
+                      }
+                    },
+                    onSubmitted: (query) {
+                      searchItems(query);
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: 'Search...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    searchItems(searchController.text);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(12),
+                    backgroundColor: Colors.white,
+                  ),
+                  child: const Icon(Icons.search, color: Colors.black),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
             // Lost item cards or no items found
             Expanded(
-              child: filteredItems.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No items found',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-              )
-                  : ListView.builder(
-                itemCount: filteredItems.length,
-                itemBuilder: (context, index) {
-                  final item = filteredItems[index];
-                  final images = item['image_url'] ?? [];
-                  final firstImage = images.isNotEmpty ? images[0] : null;
+              child: RefreshIndicator(
+                onRefresh: fetchLostItems,
+                child: filteredItems.isEmpty
+                    ? const Center(
+                  child: Text(
+                    'No items found',
+                    style: TextStyle(
+                        color: Colors.white, fontSize: 18),
+                  ),
+                )
+                    : ListView.builder(
+                  itemCount: filteredItems.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredItems[index];
+                    final imagesRaw = item['image_urls'];
+                    final List<String> images = imagesRaw is List
+                        ? imagesRaw.map<String>((img) => img.toString()).toList()
+                        : [];
 
-                  return InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectedItemPage(item: item),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(15),
-                              bottomLeft: Radius.circular(15),
-                            ),
-                            child: firstImage != null
-                                ? Image.network(
-                              firstImage,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.broken_image, size: 100),
-                            )
-                                : Container(
-                              height: 100,
-                              width: 100,
-                              color: Colors.grey,
-                              child: const Icon(Icons.image, size: 50),
+                    final firstImage = images.isNotEmpty ? images[0] : null;
+
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SelectedItemPage(
+                              item: item,
+                              phoneNumber: widget.phoneNumber,
                             ),
                           ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(10.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['title'] ?? '',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    "Lost item",
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ],
+                        );
+                      },
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Row(
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(15),
+                                bottomLeft: Radius.circular(15),
+                              ),
+                              child: firstImage != null
+                                  ? FadeInImage.assetNetwork(
+                                placeholder:
+                                'assets/images/loading.gif',
+                                image: firstImage,
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.cover,
+                                imageErrorBuilder: (context,
+                                    error, stackTrace) =>
+                                const Icon(
+                                    Icons.broken_image,
+                                    size: 100),
+                              )
+                                  : Container(
+                                height: 100,
+                                width: 100,
+                                color: Colors.grey,
+                                child: const Icon(Icons.image,
+                                    size: 50),
                               ),
                             ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: Icon(Icons.expand_more),
-                          ),
-                        ],
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item['title'] ?? '',
+                                      style: const TextStyle(
+                                          fontWeight:
+                                          FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      "Lost item",
+                                      style:
+                                      TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.expand_more),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ],

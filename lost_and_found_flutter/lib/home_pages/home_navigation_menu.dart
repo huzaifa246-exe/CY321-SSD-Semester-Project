@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found_flutter/constants.dart';
 import 'lost_page.dart';
 import 'found_page.dart';
 import 'upload_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class NavigationMenu extends StatefulWidget {
   const NavigationMenu({super.key});
@@ -12,12 +16,37 @@ class NavigationMenu extends StatefulWidget {
 
 class _NavigationMenuState extends State<NavigationMenu> {
   int _selectedIndex = 0;
+  String? phoneNumber;
 
-  final List<Widget> _pages = [
-    LostPage(),
-    UploadPage(),
-    FoundPage(),
-  ];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPhoneNumber();
+  }
+
+  Future<void> fetchPhoneNumber() async {
+    final email = _auth.currentUser?.email;
+
+    if (email == null) return;
+
+    final response = await http.post(
+      Uri.parse('$apiURL/get_phone_number'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'email': email}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        phoneNumber = data['phone_number'];
+      });
+    } else {
+      // handle error
+      print('Failed to fetch phone number');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -27,17 +56,29 @@ class _NavigationMenuState extends State<NavigationMenu> {
 
   Widget _buildNavItem({required String label, required bool isActive}) {
     return Text(
-        label,
-        style: TextStyle(
-          color: isActive ? Colors.amber[800] : Colors.grey[500],
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-        ),
-      );
+      label,
+      style: TextStyle(
+        color: isActive ? Colors.amber[800] : Colors.grey[500],
+        fontSize: 20,
+        fontWeight: FontWeight.w500,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (phoneNumber == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final List<Widget> _pages = [
+      LostPage(phoneNumber: phoneNumber!),
+      UploadPage(phoneNumber: phoneNumber!),
+      FoundPage(phoneNumber: phoneNumber!),
+    ];
+
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomAppBar(
@@ -46,31 +87,23 @@ class _NavigationMenuState extends State<NavigationMenu> {
         color: const Color(0xFF1F2A40).withOpacity(0.95),
         elevation: 8,
         child: SizedBox(
-          height: 25, // Reduced height for a tighter layout
+          height: 25,
           child: Row(
             children: <Widget>[
               Expanded(
                 child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
                   onTap: () => _onItemTapped(0),
                   child: Center(
-                    child: _buildNavItem(
-                      label: 'Lost',
-                      isActive: _selectedIndex == 0,
-                    ),
+                    child: _buildNavItem(label: 'Lost', isActive: _selectedIndex == 0),
                   ),
                 ),
               ),
-              const SizedBox(width: 50), // Extra space for FAB
+              const SizedBox(width: 50),
               Expanded(
                 child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
                   onTap: () => _onItemTapped(2),
                   child: Center(
-                    child: _buildNavItem(
-                      label: 'Found',
-                      isActive: _selectedIndex == 2,
-                    ),
+                    child: _buildNavItem(label: 'Found', isActive: _selectedIndex == 2),
                   ),
                 ),
               ),

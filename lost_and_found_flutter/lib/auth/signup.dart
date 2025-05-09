@@ -167,7 +167,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 const SizedBox(height: 12),
                 _buildInput(_emailController, "Email"),
                 const SizedBox(height: 12),
-                _buildInput(_phoneController, "Phone No."),
+                _buildInput(_phoneController, "Phone No. (whatsapp) +923001234123 format"),
                 const SizedBox(height: 12),
                 _buildInput(_passwordController, "Password", obscureText: true),
                 const SizedBox(height: 12),
@@ -215,7 +215,7 @@ class _SignUpPageState extends State<SignUpPage> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: const TextStyle(color: Colors.white54,fontSize: 12),
         filled: true,
         fillColor: Colors.white10,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
